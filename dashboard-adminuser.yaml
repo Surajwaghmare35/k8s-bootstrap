@@ -1,0 +1,56 @@
+# This yaml helps to create a new user using the Service Account mechanism of Kubernetes,
+# grant this user admin permissions and login to Dashboard using a bearer token tied to this user.
+
+# Note: he sample user created in the tutorial
+# will have administrative privileges and is for educational purposes only.
+
+# We are creating Service Account with the name admin-user in namespace kubernetes-dashboard first.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-user
+  namespace: kubernetes-dashboard
+
+---
+# In most cases after provisioning the cluster using kops, kubeadm or any other popular tool,
+# the ClusterRole cluster-admin already exists in the cluster.
+# We can use it and create only a ClusterRoleBinding for our ServiceAccount.
+# If it does not exist then you need to create this role first and grant required privileges manually.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: admin-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: admin-user
+    namespace: kubernetes-dashboard
+
+---
+# //Once apply is done follow below as:
+
+#kubectl get svc -n kubernetes-dashboard kubernetes-dashboard
+#kubectl edit svc -n kubernetes-dashboard kubernetes-dashboard //as: NP/LB
+
+# //Now we need to find the token we can use to log in. as:
+# kubectl -n kubernetes-dashboard create token admin-user >~/k8s-bootstrap/dashboard-user.token
+# kubectl get svc -A
+# cat ~/dashboard-user.token
+
+# //Kubectl will make Dashboard available at
+# host/vm-ip:<svc-random-port>
+# OR
+# http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
+
+# //Now copy the token and paste it into the Enter token field on the login screen.
+
+# //We can Remove the admin ServiceAccount and ClusterRoleBinding.
+
+# kubectl -n kubernetes-dashboard delete serviceaccount admin-user
+# kubectl -n kubernetes-dashboard delete clusterrolebinding admin-user
+# OR
+# kubectl delete -f dashboard-adminuser.yaml

@@ -1,0 +1,50 @@
+---
+# tasks for Setup-Docker ENV
+
+- name: Remove pkgs from cache/dependencies that are no longer required
+  apt: autoclean=yes autoremove=yes # clean: yes
+
+- name: Remove old-docker related pkgs
+  apt: name={{ old_pkgs }} state=absent purge=yes
+  loop: "{{ old_docker_pkgs }}"
+  loop_control:
+    loop_var: old_pkgs
+
+- name: Install required packages
+  apt: name={{ req_pkgs }} state=latest
+  loop: "{{ required_pkgs }}"
+  loop_control:
+    loop_var: req_pkgs
+
+# sudo install -m 0755 -d /etc/apt/keyrings
+# curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+# sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+- name: Create /etc/apt/keyrings directory
+  file: path=/etc/apt/keyrings state=directory mode='0755'
+
+- name: Add Docker GPG apt Key in /etc/apt/trusted.gpg.d
+  apt_key:
+    url: "{{ docker_gpg_apt_key_url }}"
+    keyring: /etc/apt/trusted.gpg.d/docker.gpg
+    state: present
+
+- name: Add Docker Repository in /etc/apt/sources.list.d
+  apt_repository:
+    repo: "{{ docker_repo_url }}"
+    filename: docker
+    update_cache: true
+    state: present
+
+- name: Install Docker Engine (containerd as cri include runc)
+  apt: name={{ docker_pkgs }} state=latest
+  loop: "{{ docker_engine_pkgs }}"
+  loop_control:
+    loop_var: docker_pkgs
+
+- name: check docker & compose -V
+  command: "{{ item }}"
+  loop: [docker -v, docker compose version, docker info]
+
+- name: verify 'sudo' docker pull
+  docker_container: name=docker image=hello-world state=present

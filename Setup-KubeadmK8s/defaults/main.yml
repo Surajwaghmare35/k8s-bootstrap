@@ -1,0 +1,62 @@
+---
+# defaults file for Setup-KubeadmK8s
+
+oh_my_zsh_url: "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
+# sh -c "$(curl -fsSL url)"
+# sh -c "$(wget url -O -)"
+
+old_docker_pkgs:
+  - [docker, docker.io, docker-doc, docker-compose, podman-docker, containerd, runc]
+  - [docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin]
+  - docker-ce-rootless-extras
+
+required_pkgs: [apt-transport-https, ca-certificates, curl, gnupg, lsb-release]
+
+docker_gpg_apt_key_url: "https://download.docker.com/linux/ubuntu/gpg"
+docker_repo_url: "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+
+docker_engine_pkgs: [docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin]
+
+docker_log_config: |
+  {
+      "log-driver": "json-file",
+      "log-opts": {
+        "max-size": "10m",
+        "max-file": "3" 
+      },
+      "storage-driver": "overlay2"
+  }
+  
+unix_domain_socket: [/var/run/docker.sock, /run/containerd/containerd.sock]
+
+containerd_cni_url: "https://github.com/containernetworking/plugins/releases/download/v1.3.0/cni-plugins-linux-amd64-v1.3.0.tgz"
+
+containerd_config_toml:
+  - [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+  - [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+  - "SystemdCgroup = true"
+
+crictl_url: "https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.28.0/crictl-v1.28.0-linux-amd64.tar.gz"
+
+crictl_ep_config: |
+  runtime-endpoint: unix:///run/containerd/containerd.sock
+  image-endpoint: unix:///run/containerd/containerd.sock
+  timeout: 2
+  debug: false
+  pull-image-on-create: false
+
+# K8S Defaults
+k8s_gpg_apt_key_url: "https://dl.k8s.io/apt/doc/apt-key.gpg"
+k8s_repo_url: "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main"
+k8s_pkgs: [kubelet, kubeadm, kubectl]
+
+k8s_CgroupLog_config: |
+  {
+      "exec-opts": ["native.cgroupdriver=systemd"],
+      "log-driver": "json-file",
+      "log-opts": {
+        "max-size": "10m",
+        "max-file": "3" 
+      },
+      "storage-driver": "overlay2"
+  }

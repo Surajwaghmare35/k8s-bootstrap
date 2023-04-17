@@ -1,0 +1,13 @@
+---
+# tasks file for Setup-KubeadmK8s
+
+- include_tasks: "{{ item}}"
+  loop:
+    - 1-docker-setup.yml
+    - 2-post-docker-setup.yml
+    - 3-docker-cni.yml
+    # - 4-docker-cli.yml
+
+- import_tasks: 5-kubeadm-k8s-setup.yml
+  become: true
+  become_method: sudo

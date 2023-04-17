@@ -1,0 +1,52 @@
+---
+- name: Set static hostname
+  hostname: name={{ ansible_fqdn }}
+  when: ansible_fqdn == "master" or ansible_fqdn == "worker"
+
+- name: Add or update /etc/hosts file
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ ansible_default_ipv4.address }} {{ ansible_hostname }}"
+    state: present
+
+- name: check swap status & diable it
+  command: "{{ item }}"
+  loop: [free -h, swapon -s, swapoff -a]
+
+- name: Comment /swap.img and /swapfile lines using sed
+  command: sed -i '/\/swap.img\|\/swapfile/ s/^/# /' /etc/fstab
+
+# Uncomment /swap.img and /swapfile lines using sed
+# sed -i '/\/swap.img\|\/swapfile/ s/^# //' /etc/fstab
+
+# - name: Distable apparmor.service
+#   systemd: name=apparmor state=stopped daemon_reload=true
+
+- include_tasks: 6-k8s-iptables.yml
+
+- name: Add k8s GPG apt Key in /etc/apt/trusted.gpg.d
+  apt_key:
+    url: "{{ k8s_gpg_apt_key_url }}"
+    keyring: /etc/apt/trusted.gpg.d/kubernetes-archive-keyring.gpg
+    state: present
+
+- name: Add k8s Repository in /etc/apt/sources.list.d
+  apt_repository: repo={{ k8s_repo_url }} filename=kubernetes update_cache=true state=present
+
+- name: Install kubelet, kubeadm, kubectl
+  apt: name="{{ item }}" state=latest
+  loop: "{{ k8s_pkgs }}"
+
+# apt-mark hold kubelet kubeadm kubectl
+
+- name: Update k8s_CgroupLog_config in /etc/docker/daemon.json
+  copy: content={{k8s_CgroupLog_config }} dest=/etc/docker/daemon.json
+  notify: Restart Docker & Containerd
+
+- name: set kubectl, kubeadm 'bash' auto-completion
+  lineinfile: path=/home/{{ USER}}/.bashrc line={{ item }}
+  loop: [source <(kubectl completion bash), source <(kubeadm completion bash)]
+
+- name: set kubectl, kubeadm 'zsh' auto-completion
+  lineinfile: path=/home/{{ USER}}/.zshrc line={{ item }}
+  loop: [source <(kubectl completion zsh), source <(kubeadm completion zsh)]

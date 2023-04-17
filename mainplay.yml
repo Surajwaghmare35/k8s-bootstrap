@@ -1,0 +1,43 @@
+---
+- name: Setup k8s Cluster Environment
+  hosts: all
+  become: true
+  remote_user: vagrant
+  become_method: sudo
+  gather_facts: true
+  # ignore_unreachable: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_ssh_pipelining: true
+    USER: vagrant
+  pre_tasks:
+    - name: Update & Upgrade PkG's
+      apt: update_cache=yes   # upgrade=yes
+      notify: Reboot Docker Setup
+
+    - name: Install Basic PkG's
+      apt: name={{ item }} state=latest
+      loop: [vim, net-tools, zsh, bash-completion, python3-pip]
+
+    - name: Set vim as default editor
+      shell: sudo update-alternatives --set editor $(which vim).basic
+      args:
+        executable: "{{ ansible_user_shell }}"
+
+    - name: Create /etc/default/locale file
+      copy:
+        dest: /etc/default/locale
+        content: |
+          LANG="en_US.UTF-8"
+          LC_ALL="en_US.UTF-8"
+
+    - name: Run update-locale
+      command: sudo update-locale
+
+  roles:
+    - { role: viasite-ansible.zsh, zsh_user: "{{ USER }}" }
+
+  tasks:
+    - import_role: name=Setup-KubeadmK8s
+      vars:
+        USER: vagrant

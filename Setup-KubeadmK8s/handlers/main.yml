@@ -1,0 +1,9 @@
+---
+# handlers file for Setup-KubeadmK8s
+- name: Restart Docker & Containerd
+  service: name={{ item }} state=restarted daemon_reload=true
+  loop: [docker, containerd]
+
+- name: Reboot Docker Setup
+  reboot:
+    test_command: ping -c 4 {{ ansible_default_ipv4.address }}

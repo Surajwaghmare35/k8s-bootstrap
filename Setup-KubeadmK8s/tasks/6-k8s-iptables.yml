@@ -1,0 +1,35 @@
+---
+# Forwarding IPv4 and letting iptables see bridged traffic
+
+- name: Add /etc/modules-load.d/k8s.conf file
+  copy:
+    content: |
+      overlay
+      br_netfilter
+    dest: /etc/modules-load.d/k8s.conf
+
+- name: Run modprobe overlay/br_netfilter
+  command: "{{ item }}"
+  loop: [modprobe overlay, modprobe br_netfilter]
+
+- name: Add /etc/sysctl.d/k8s.conf file
+  copy:
+    content: |
+      net.bridge.bridge-nf-call-iptables  = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.ipv4.ip_forward                 = 1
+    dest: /etc/sysctl.d/k8s.conf
+
+- name: Apply sysctl params without reboot
+  command: sysctl --system
+
+# - name: Verify br_netfilter, overlay modules are loaded
+#   command: lsmod | grep -e br_netfilter -e overlay
+
+- name: Verify iptables config
+  command: sysctl net.bridge.bridge-nf-call-iptables net.bridge.bridge-nf-call-ip6tables net.ipv4.ip_forward
+  register: iptables
+
+- name: output lsmod & iptables
+  debug: var={{ item }}.stdout_lines
+  loop: [lsmod, iptables]
