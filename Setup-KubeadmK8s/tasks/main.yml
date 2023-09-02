@@ -1,13 +1,24 @@
 ---
 # tasks file for Setup-KubeadmK8s
 
-- include_tasks: "{{ item}}"
+- include_tasks: "{{ item }}"
   loop:
     - 1-docker-setup.yml
     - 2-post-docker-setup.yml
-    - 3-docker-cni.yml
-    # - 4-docker-cli.yml
+    - 3-docker-cd-cni-setup.yml
+    - 4-cri-dockerd-cni-setup.yml
+    # - 5-docker-cli.yml
 
-- import_tasks: 5-kubeadm-k8s-setup.yml
+- import_tasks: 6-kubeadm-k8s-common-setup.yml
   become: true
   become_method: sudo
+
+- import_tasks: 8-kubeadm-master-init.yml
+  become: true
+  become_method: sudo
+  when: inventory_hostname == "master"
+
+- name: allow required ports on worker
+  ufw: rule=allow port={{ item }} proto=tcp state=enabled # name: OpenSSH   # delete: true
+  loop: "{{ worker_ports }}"
+  when: inventory_hostname == "worker"

@@ -1,4 +1,5 @@
 #! /bin/bash
+export guser=vagrant
 
 sudo chmod 666 /var/run/docker.sock
 sudo chmod 644 /etc/kubernetes/admin.conf
@@ -25,12 +26,12 @@ sudo chmod 644 /etc/kubernetes/admin.conf
 
 # //Open Calico addon N/w Req Port.on M/w node
 # sudo ufw allow 179/tcp (skip it)
-# kubectl apply -f /home/vagrant/calico.yaml && echo
-# kubectl apply -f /home/vagrant/tigera-operator.yaml && echo && kubectl apply -f /home/vagrant/custom-resources.yaml && echo
+# kubectl apply -f /home/$guser/calico.yaml && echo
+# kubectl apply -f /home/$guser/tigera-operator.yaml && echo && kubectl apply -f /home/$guser/custom-resources.yaml && echo
 
 # //For Weave-Net N/w addon port
 # sudo ufw allow 6783/tcp && sudo ufw allow 6783,6784/udp && echo  (skip it)
-kubectl apply -f /home/vagrant/weave-daemonset-k8s.yaml && echo
+kubectl apply -f /home/$guser/weave-daemonset-k8s.yaml && echo
 
 watch kubectl get ns,deploy,po,svc,ing,ep,sc -A -o wide && echo
 
@@ -40,7 +41,7 @@ watch kubectl get ns,deploy,po,svc,ing,ep,sc -A -o wide && echo
 # kubectl describe nodes master | grep -i taint && echo
 
 watch kubectl get deploy,po,svc -A -o wide && echo
-kubectl apply -f /home/vagrant/*/nginx-master.yml -f /home/vagrant/*/env-config.yml -f /home/vagrant/*/host-pv-pvc.yml && echo
+kubectl apply -f /home/$guser/*/nginx-master.yml -f /home/$guser/*/env-config.yml -f /home/$guser/*/host-pv-pvc.yml && echo
 watch kubectl get deploy,po,svc -A -o wide && echo
 
 # //Set-up K8s dashboard
@@ -48,7 +49,7 @@ watch kubectl get deploy,po,svc -A -o wide && echo
 # kubectl taint node master node-role.kubernetes.io/control-plane:NoSchedule- && echo
 # kubectl describe nodes master | grep -i taint && echo
 
-kubectl apply -f /home/vagrant/*/dashboard-recommended.yaml -f /home/vagrant/*/dashboard-adminuser.yaml && echo
+kubectl apply -f /home/$guser/*/dashboard-recommended.yaml -f /home/$guser/*/dashboard-adminuser.yaml && echo
 kubectl get svc -n kubernetes-dashboard kubernetes-dashboard && echo
 kubectl edit svc -n kubernetes-dashboard kubernetes-dashboard && echo
 # //as: NP/LB
@@ -56,9 +57,9 @@ kubectl taint node master node-role.kubernetes.io/control-plane:NoSchedule && ec
 kubectl describe nodes master | grep -i taint && echo
 
 # //Now we need to find the token we can use to log in. as:
-kubectl -n kubernetes-dashboard create token admin-user >/home/vagrant/k8s-bootstrap/dashboard-user.token && echo
+kubectl -n kubernetes-dashboard create token admin-user >/home/$guser/k8s-bootstrap/dashboard-user.token && echo
 kubectl get svc -A && echo
-cat /home/vagrant/k8s-bootstrap/dashboard-user.token && echo
+cat /home/$guser/k8s-bootstrap/dashboard-user.token && echo
 
 # //using below we get hash of existing active tocken
 openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null |

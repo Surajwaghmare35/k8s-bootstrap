@@ -13,12 +13,7 @@ sudo apt-get --purge autoremove -y && echo
 sudo hostnamectl set-hostname --static $1 && echo
 
 # //"$(hostname -I)" master //add this in /etc/hosts as:
-sudo tee --append --ignore-interrupts 
-  - name: Append entry to /etc/hosts
-      lineinfile:
-        path: /etc/hosts
-        line: "{{ ansible_facts['default_ipv4']['address'] }} {{ ansible_hostname }}"
-        state: present/etc/hosts <<<"$(hostname -I)   "$1"" && echo
+sudo tee --append --ignore-interrupts /etc/hosts <<<"$(hostname -I)   "$1"" && echo
 
 # //check swap status & off it
 free -h && sudo swapon -s && sudo swapoff -a && echo
@@ -109,3 +104,4 @@ echo -e "\nsource <(kubeadm completion zsh)\n" >>/home/$guser/.zshrc
 
 # //exec $SHELL
 # //Finally (Exec kubeadm-init.sh file)
+                                                                                                          

@@ -1,0 +1,53 @@
+---
+- name: Clone 'cri-dockerd' git in pwd
+  git: repo="https://github.com/Mirantis/cri-dockerd.git" dest=cri-dockerd
+  # clone: no
+  # update: no
+
+- name: Ensure snapd is up to date
+  shell: "{{ item }}"
+  loop: [sudo snap refresh, sudo snap install core]
+
+- name: Install 'go' from snap
+  snap: name=go state=present classic=true channel=latest/stable
+
+- name: check 'cri-dockerd' binary file in ~/cri-dockerd/
+  stat: path="/home/{{ ansible_user }}/cri-dockerd/cri-dockerd"
+  register: file
+
+- name: Build the 'cri-dockerd' default target with make
+  make: chdir=/home/{{ ansible_user }}/cri-dockerd target=cri-dockerd
+  when: file.stat.exists == false
+
+- name: Create /usr/local/bin directory
+  file: path=/usr/local/bin state=directory mode='0755'
+
+- name: Update 'cri-dockerd' binary perm=0755
+  file: path=/home/{{ ansible_user }}/cri-dockerd/cri-dockerd state=file mode='0755'
+
+- name: move 'cri-dockerd' binary to '/usr/local/bin'
+  copy:
+    src: /home/{{ ansible_user }}/cri-dockerd/cri-dockerd
+    remote_src: true
+    dest: /usr/local/bin
+    mode: "0755"
+    force: true
+
+- name: Copy cri-dockerd.service/socket file in '/etc/systemd/system/'
+  copy:
+    src: /home/{{ ansible_user }}/cri-dockerd/packaging/systemd/{{ item }}
+    remote_src: true
+    dest: /etc/systemd/system/
+    mode: "0755"
+    force: true
+  loop: [cri-docker.service, cri-docker.socket]
+
+- name: Update 'cri-dockerd' systemd unit file
+  replace:
+    path: /etc/systemd/system/cri-docker.service
+    regexp: "/usr/bin/cri-dockerd"
+    replace: "/usr/local/bin/cri-dockerd"
+
+- name: Start and enable cri-docker service
+  systemd: name=cri-docker state=started enabled=yes daemon_reload=true
+  notify: Restart Docker & Containerd

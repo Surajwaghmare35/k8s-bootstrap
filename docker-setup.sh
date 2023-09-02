@@ -77,7 +77,7 @@ sudo systemctl daemon-reload && sudo systemctl restart docker containerd
 sudo docker version && sudo docker compose version && sudo docker --version && sudo docker run hello-world
 
 # # //Post-installation steps for Docker
-sudo groupadd docker && sudo usermod -aG docker vagrant && newgrp docker
+sudo groupadd docker && sudo usermod -aG docker $guser && newgrp docker
 
 # //Set docker & compose permission
 mkdir -p /home/$guser/.docker

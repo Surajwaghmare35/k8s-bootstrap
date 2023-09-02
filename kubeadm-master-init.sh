@@ -1,4 +1,5 @@
 #! /bin/bash
+export guser=vagrant
 
 # //NOTE: exec script as #source <script.sh>  //Ex: source kubeadm-k8s-setup.sh
 
@@ -33,27 +34,27 @@ free -h && sudo swapon -s && sudo swapoff -a && echo
 sudo sed -i '12s/^\([^#]\)/#\1/g' -i /etc/fstab #comment specified line
 
 # //For root/normal user
-echo -e "export KUBECONFIG=/etc/kubernetes/admin.conf\n" >>/home/vagrant/.bashrc
-echo -e "export KUBECONFIG=/etc/kubernetes/admin.conf\n" >>/home/vagrant/.zshrc
-mkdir -p /home/vagrant/.kube
-sudo chown $(id -u):$(id -g) /home/vagrant/.kube/config
-sudo chown vagrant:vagrant /home/vagrant/.kube/config
+echo -e "export KUBECONFIG=/etc/kubernetes/admin.conf\n" >>/home/$guser/.bashrc
+echo -e "export KUBECONFIG=/etc/kubernetes/admin.conf\n" >>/home/$guser/.zshrc
+mkdir -p /home/$guser/.kube
+sudo chown $(id -u):$(id -g) /home/$guser/.kube/config
+sudo chown $guser:$guser /home/$guser/.kube/config
 
 # # //Download Calico/Weave-Net for on-premises deployments as: (operator/manifest method)
-wget -nc https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml -P /home/vagrant && echo
-wget -nc https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/tigera-operator.yaml -P /home/vagrant && echo
-wget -nc https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/custom-resources.yaml -P /home/vagrant && echo
+wget -nc https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml -P /home/$guser && echo
+wget -nc https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/tigera-operator.yaml -P /home/$guser && echo
+wget -nc https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/custom-resources.yaml -P /home/$guser && echo
 
-wget -nc https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml -P /home/vagrant && echo
+wget -nc https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml -P /home/$guser && echo
 
 # # //Open calico N/w Req. Port
 # # sudo ufw allow 179/tcp && echo
-# # kubectl apply -f /home/vagrant/calico.yaml && echo
-# kubectl apply -f /home/vagrant/tigera-operator.yaml && echo && kubectl apply -f /home/vagrant/custom-resources.yaml && echo
+# # kubectl apply -f /home/$guser/calico.yaml && echo
+# kubectl apply -f /home/$guser/tigera-operator.yaml && echo && kubectl apply -f /home/$guser/custom-resources.yaml && echo
 
 # # //For Weave-Net N/w addon port
 # # sudo ufw allow 6783/tcp && sudo ufw allow 6783,6784/udp && echo  (skip it)
-# kubectl apply -f /home/vagrant/weave-daemonset-k8s.yaml && echo
+# kubectl apply -f /home/$guser/weave-daemonset-k8s.yaml && echo
 
 # //Initialize K8s Cluster
 sudo kubeadm init --pod-network-cidr=192.168.0.0/16 && echo
@@ -64,7 +65,7 @@ sudo kubeadm init --pod-network-cidr=192.168.0.0/16 && echo
 # sudo kubeadm init && echo
 sudo chmod 666 /var/run/docker.sock
 sudo chmod 664 /etc/kubernetes/admin.conf
-sudo cp -a /etc/kubernetes/admin.conf /home/vagrant/.kube/config
+sudo cp -a /etc/kubernetes/admin.conf /home/$guser/.kube/config
 # //without promt override.
 
 # //Once kubeadm is setup kublet is auto enable

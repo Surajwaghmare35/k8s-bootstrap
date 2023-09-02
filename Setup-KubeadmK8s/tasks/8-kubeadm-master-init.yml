@@ -1,0 +1,72 @@
+---
+- name: allow required ports on master
+  ufw: rule=allow port={{ item }} proto=tcp state=enabled # name: OpenSSH   # delete: true
+  loop: "{{ master_ports }}"
+
+- name: Reset existing k8s master setup
+  shell: kubeadm reset -f --cri-socket=unix://{{ docker_engine_uds }}
+
+- name: remove /etc/cni/net.d dir & reset your system's IPVS tables
+  shell: |
+    rm -rf /etc/cni/*
+    # ipvsadm --clear
+
+- name: Docker Prune everything (including non-dangling images)
+  docker_prune: containers=true images=true networks=true volumes=true builder_cache=true
+  # images_filters:
+  # dangling: false
+
+- name: run 'pull kubeadm config images'
+  shell: kubeadm config images pull --cri-socket=unix://{{ docker_engine_uds }}
+
+- name: check 'calico/operator/resource/manifest,weave_daemonset' file in PWD
+  stat: path="/home/{{ ansible_user }}/{{ item }}"
+  loop:
+    [
+      calico.yaml,
+      tigera-operator.yaml,
+      custom-resources.yaml,
+      weave-daemonset-k8s.yaml,
+    ]
+  register: addon
+
+- name: Download Calico/Weave-Net for on-premises deployments as (operator/manifest method)
+  get_url: url={{ item }} dest=/home/{{ ansible_user }}/ force=true
+  loop:
+    [
+      "{{ calico_operator }}",
+      "{{ calico_resource }}",
+      "{{ calico_manifest }}",
+      "{{ weave_daemonset }}",
+    ]
+  # when: "{{ addon | json_query('results[*].stat[?exists==false']') }}"
+
+- name: run 'kubeadm init'
+  shell: kubeadm init --control-plane-endpoint={{ ansible_default_ipv4.address }} --cri-socket=unix://{{ docker_engine_uds }}
+  register: k8s_init
+
+# - name: Display 'k8s_init' output
+#   debug:
+#     var: k8s_init.stdout_lines
+#     # var: k8s_init.stdout_lines[76:79]
+
+- name: Create & change ownership of '~/.kube' dir!
+  file: path=/home/{{ ansible_user }}/.kube state=directory mode="0775" owner={{ ansible_user }} group={{ ansible_user }} recurse=true
+
+- name: Copy '/etc/kubernetes/admin.conf' ~/.kube
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /home/{{ ansible_user }}/.kube/config
+    remote_src: yes
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: export KUBECONFIG=/etc/kubernetes/admin.conf in '.bashrc' & '.zshrc'
+  lineinfile: path=/home/{{ ansible_user }}/{{ item }} line="export KUBECONFIG=/etc/kubernetes/admin.conf"
+  loop: [.bashrc, .zshrc]
+
+- name: Update 'KUBECONFIG' file perm=0644
+  file: path=/etc/kubernetes/admin.conf state=file mode='0644'
+
+- name: Copy 'k8s join command' to local file
+  copy: content="{{ k8s_init.stdout_lines[76:79] }}" dest="k8s_join_command" remote_src=true

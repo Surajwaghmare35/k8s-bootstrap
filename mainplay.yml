@@ -2,22 +2,24 @@
 - name: Setup k8s Cluster Environment
   hosts: all
   become: true
-  remote_user: vagrant
+  remote_user: "{{ ansible_user }}"
   become_method: sudo
   gather_facts: true
   # ignore_unreachable: yes
   vars:
     ansible_python_interpreter: /usr/bin/python3
     ansible_ssh_pipelining: true
-    USER: vagrant
+
   pre_tasks:
     - name: Update & Upgrade PkG's
-      apt: update_cache=yes   # upgrade=yes
-      notify: Reboot Docker Setup
+      apt: update_cache=yes upgrade=yes force_apt_get=true
+      # notify: Reboot Docker Setup
 
     - name: Install Basic PkG's
-      apt: name={{ item }} state=latest
-      loop: [vim, net-tools, zsh, bash-completion, python3-pip]
+      apt: name={{ item }} state=latest force_apt_get=true
+      loop:
+        - [vim, net-tools, zsh, bash-completion, build-essential]
+        - [python3-pip, ipvsadm, jq, iputils-ping, network-manager]
 
     - name: Set vim as default editor
       shell: sudo update-alternatives --set editor $(which vim).basic
@@ -32,12 +34,10 @@
           LC_ALL="en_US.UTF-8"
 
     - name: Run update-locale
-      command: sudo update-locale
+      shell: sudo update-locale
 
-  roles:
-    - { role: viasite-ansible.zsh, zsh_user: "{{ USER }}" }
+  # roles:
+  #   - { role: ./Setup-KubeadmK8s/viasite-ansible.zsh, zsh_user: "{{ ansible_user }}" }
 
   tasks:
-    - import_role: name=Setup-KubeadmK8s
-      vars:
-        USER: vagrant
+    - import_role: name=./Setup-KubeadmK8s

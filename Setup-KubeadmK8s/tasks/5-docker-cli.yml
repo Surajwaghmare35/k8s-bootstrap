@@ -2,15 +2,10 @@
 # -------- Docker CLI Setup ------- # //optional
 
 - name: Install nerdctl/crictl to intract with container (ex=crictl ps -a) //optional
-  get_url:
-    url: "{{ crictl_url }}"
-    dest: /tmp/crictl-containerd-cli.tgz
-    force: true
+  get_url: url={{ crictl_url }} dest=/tmp/crictl-containerd-cli.tgz force=true
 
 - name: Extract 'crictl-cli'
   unarchive: src=/tmp/crictl-containerd-cli.tgz dest=/usr/local/bin remote_src=yes
 
 - name: Set 'crictl-cli' endpoint in the config
-  copy:
-    content: "{{ crictl_ep_config }}" 
-    dest: /etc/crictl.yaml
+  copy: content={{ crictl_ep_config }} dest=/etc/crictl.yaml

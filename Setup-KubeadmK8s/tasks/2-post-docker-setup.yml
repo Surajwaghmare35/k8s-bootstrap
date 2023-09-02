@@ -8,37 +8,39 @@
   group: name=docker state=present
 
 - name: Add user to Docker group
-  user: name={{ USER }} groups=docker append=true
+  user: name={{ ansible_user }} groups=docker append=true
 
 # - name: Switch to Docker group
 #   shell: newgrp docker
 
-- name: Create & change -R ownership of 'docker' dir!
-  file:
-    path: /home/{{ USER }}/.docker
-    state: directory
-    mode: "0775"
-    owner: "{{ USER }}"
-    group: "{{ USER }}"
-    recurse: true
-
 - name: verify 'normal' docker pull
   docker_container: name=docker image=hello-world state=present
-  become_user: "{{ USER }}"
 
-- name: configure docker log-driver
-  copy: content={{ docker_log_config }} dest=/etc/docker/daemon.json
+- name: Create & change -R ownership of 'docker' dir!
+  file:
+    path: /home/{{ ansible_user }}/.docker
+    state: directory
+    mode: "0775"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    recurse: true
 
 - name: Start and enable Docker & Containerd
   systemd: name={{ service }} state=started enabled=yes daemon_reload=true
   loop: [docker, containerd]
   loop_control:
     loop_var: service
+  notify: Update Unix domain socket Perm!
 
-- name: Update Unix domain socket Perm!
-  file: path={{ unix_socket }} mode='0666' # state: file
-  loop: "{{ unix_domain_socket }}"
-  become: true
-  become_method: sudo
-  loop_control:
-    loop_var: unix_socket
+- name: configure docker log-driver
+  copy:
+    content: |
+      {
+      "log-driver": "json-file",
+      "log-opts": {
+        "max-size": "10m",
+        "max-file": "3" 
+      },
+      "storage-driver": "overlay2"
+      }
+    dest: /etc/docker/daemon.json

@@ -1,5 +1,11 @@
 ---
 # handlers file for Setup-KubeadmK8s
+
+- name: Update Unix domain socket Perm!
+  file: path={{ item }} mode='0666' # state: file
+  # loop: "{{ unix_domain_socket | dict2items }}}"
+  loop: ["{{ docker_uds }}", "{{ containerd_uds }}"]
+
 - name: Restart Docker & Containerd
   service: name={{ item }} state=restarted daemon_reload=true
   loop: [docker, containerd]

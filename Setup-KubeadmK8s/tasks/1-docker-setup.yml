@@ -5,13 +5,13 @@
   apt: autoclean=yes autoremove=yes # clean: yes
 
 - name: Remove old-docker related pkgs
-  apt: name={{ old_pkgs }} state=absent purge=yes
+  apt: name={{ old_pkgs }} state=absent purge=yes  force_apt_get=true
   loop: "{{ old_docker_pkgs }}"
   loop_control:
     loop_var: old_pkgs
 
 - name: Install required packages
-  apt: name={{ req_pkgs }} state=latest
+  apt: name={{ req_pkgs }} state=latest force_apt_get=true
   loop: "{{ required_pkgs }}"
   loop_control:
     loop_var: req_pkgs
@@ -30,20 +30,16 @@
     state: present
 
 - name: Add Docker Repository in /etc/apt/sources.list.d
-  apt_repository:
-    repo: "{{ docker_repo_url }}"
-    filename: docker
-    update_cache: true
-    state: present
+  apt_repository: repo={{ docker_repo_url }} filename=docker update_cache=true state=present
 
 - name: Install Docker Engine (containerd as cri include runc)
-  apt: name={{ docker_pkgs }} state=latest
+  apt: name={{ docker_pkgs }} state=latest force_apt_get=true
   loop: "{{ docker_engine_pkgs }}"
   loop_control:
     loop_var: docker_pkgs
 
 - name: check docker & compose -V
-  command: "{{ item }}"
+  shell: "{{ item }}"
   loop: [docker -v, docker compose version, docker info]
 
 - name: verify 'sudo' docker pull
